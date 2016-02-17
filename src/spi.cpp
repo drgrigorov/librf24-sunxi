@@ -10,6 +10,53 @@
 
 #include "spi.h"
 
+SPIIOBuf::SPIIOBuf( const int& nSize ) throw()
+:
+	m_nSize( nSize )
+{
+	if (m_nSize > 32) m_nSize = 32;
+}
+
+//------------------------------------------------------------------------------
+
+SPIIOBuf::SPIIOBuf( const std::string& sTXData ) throw()
+:
+	m_nSize( 0 )
+{
+	m_sTXData = sTXData;
+	if ( m_sTXData.size() > 32 ) m_sTXData = m_sTXData.substr(0,32);
+}
+
+//------------------------------------------------------------------------------
+
+SPIIOBuf::~SPIIOBuf() throw()
+{
+}
+
+//------------------------------------------------------------------------------
+
+std::string SPIIOBuf::GetTXData() const throw()
+{
+	return m_sTXData;
+}
+
+//------------------------------------------------------------------------------
+
+std::string SPIIOBuf::GetRXData() const throw()
+{
+	return m_sRXData;
+}
+
+//------------------------------------------------------------------------------
+
+void SPIIOBuf::SetResult( const std::string& sRXData )
+{
+	m_sRXData = sRXData;
+	if ( m_sRXData.size() > m_nSize ) m_sRXData = m_sRXData.substr(0,m_nSize - 1);
+}
+
+//------------------------------------------------------------------------------
+
 SPI::SPI(string spidev, int speed, int bits)
 {
 	this->device = spidev;
@@ -70,6 +117,30 @@ void SPI::init()
 		perror("can't set max speed hz");
 		abort();
 	}
+}
+
+uint8_t SPI::transfer(SPIIOBuf& trxData)
+{
+	int ret = 0;
+	struct spi_ioc_transfer tr;
+
+	std::string sTmp = trxData.GetTXData();
+	const int len = sTmp.size();
+	uint8_t rx[len] = {0};
+	uint8_t tx[len] = {0};
+	tr.tx_buf = (unsigned long)tx;
+	tr.rx_buf = (unsigned long)rx;
+	tr.len = len;
+	tr.delay_usecs = 0;
+	tr.speed_hz = this->speed;
+	tr.bits_per_word = this->bits;
+
+	ret = ioctl(this->fd, SPI_IOC_MESSAGE(1), &tr);
+	if ( ret > 0 )
+	{
+		trxData.SetResult( std::string( tr.rx_buf, tr.len ) );
+	}
+	return ret;
 }
 
 uint8_t SPI::transfer(uint8_t tx_)

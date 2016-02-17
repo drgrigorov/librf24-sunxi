@@ -24,10 +24,38 @@
 
 using namespace std;
 
+class SPI;
+class SPIIOBuf
+{
+	//Only SPI can write to the RXBuf
+	friend class SPI;
+public:
+	//Creating empty buffer with size nSize. Note that if more than 32 it will be set to 32.
+	SPIIOBuf( const int& nSize ) throw();
+	//Creating buffer from string. Used for issuing commands and getting results in TX Data member
+	//For now the TXData will be truncated to the 32rd byte without notice.
+	SPIIOBuf( const std::string& sTXData ) throw();
+	virtual ~SPIIOBuf() throw();
+
+	std::string GetTXData() const throw();
+	std::string GetRXData() const throw();
+protected:
+	//Because in the SPI the tx and rx buffers are equal the sRXData should be <= sTXData
+	//The sRXData will be truncated to the nSize member for now
+	void SetResult( const std::string& sRXData );
+
+private:
+	std::string m_sRXData;
+	std::string m_sTXData;
+	//Currently max size is 32 bytes
+	uint8_t m_nSize;
+};
+
 class SPI {
 public:
 	SPI(string spidev, int speed, int bits);
 	uint8_t transfer(uint8_t tx_);
+	uint8_t transfer(SPIIOBuf& trxData);
 	virtual ~SPI();
 private:
 	string device;
