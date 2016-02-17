@@ -1,7 +1,11 @@
 #include "nRF24L01.h"
 #include "RF24.h"
 #include "printf.h"
-#include "gpio.h"
+#ifdef GPIO_SUN7I
+#include "gpio_sun7i.h"
+#else
+#include "gpio_sun4i.h"
+#endif
 // // Hardware configuration // // Set up nRF24L01 radio on
 //SPI bus plus pins 8 & 9
 void setup(void);

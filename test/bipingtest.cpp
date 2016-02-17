@@ -1,11 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include "RF24.h"
-#ifdef GPIO_SUN7I
 #include "gpio_sun7i.h"
-#else
-#include "gpio_sun4i.h"
-#endif
 using namespace std;
 
 const uint64_t pipes[2] = {0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL};
@@ -16,11 +12,7 @@ int next_payload_size = min_payload_size;
 
 char receive_payload[max_payload_size+1]; // +1 to allow room for a terminating NULL char
 
-// CE - PI14
-// CSN - PI15
-RF24 radio(SUNXI_GPI(14), SUNXI_GPI(15), "/dev/spidev2.0");
-
-void setup(void)
+void setup(RF24& radio)
 {
         radio.begin();
         // enable dynamic payloads
@@ -39,7 +31,7 @@ void setup(void)
         radio.printDetails();
 }
 
-void loop(void)
+void loop(RF24& radio)
 {
         // Ping out.
         // The payload will always be the same, what will change is how much of it we send.
@@ -81,10 +73,55 @@ void loop(void)
         sleep(1);
 }
 
+void PrintUsage( const char* szName )
+{
+	printf("Usage: %s <-r|-t> <-d device_path>\n", szName );
+}
+
 int main(int argc, char** argv)
 {
-        setup();
-        while(1) loop();
+	char* szDeviceName = 0;
+	bool bTransmitter = false;
+
+	if (argc < 2)
+	{
+		printf("Not enough arguments\n");
+		PrintUsage( argv[0] );
+		return 1;
+	}
+
+	char opt = 0;
+	while(opt != -1)
+	{
+		opt = getopt( argc, argv, "rtd:" );
+		//wtf 255?!
+		if ( -1 == opt || 255 == opt ) break;
+		switch(opt)
+		{
+			case 'd':
+				szDeviceName = optarg;
+				break;
+			case 'r':
+				bTransmitter=false;
+				break;
+			case 't':
+				bTransmitter=true;
+				break;
+			case '?':
+			default:
+				printf("Unknown adgument %c[%d]\n", opt,opt );
+				PrintUsage( argv[0] );
+				return 1;
+				break;
+		}
+	}
+
+	// CE - PI14
+	// CSN - PI15
+	RF24 radio(SUNXI_GPI(14), SUNXI_GPI(15), szDeviceName);
+
+        setup(radio);
+        while(1) loop(radio);
 
         return 0;
 }

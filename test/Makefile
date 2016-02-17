@@ -1,13 +1,16 @@
 LIBNAME=rf24-sunxi
 LIBDIR=../lib/
 
-all:pingtest scanner
+all:pingtest scanner bipingtest
 
-pingtest:
-	g++ pingtest.cpp -I../src/ -L${LIBDIR} -l${LIBNAME} -o pingtest
+pingtest: pingtest.cpp
+	g++ pingtest.cpp -DGPIO_SUN7I -I../src/ -L${LIBDIR} -l${LIBNAME} -o pingtest
 
-scanner:
-	g++ scanner.cpp -I../src/ -L${LIBDIR} -l${LIBNAME} -o scanner
+bipingtest: bipingtest.cpp
+	g++ bipingtest.cpp -DGPIO_SUN7I -I../src/ -L${LIBDIR} -l${LIBNAME} -o bipingtest
+
+scanner: scanner.cpp
+	g++ scanner.cpp -DGPIO_SUN7I -I../src/ -L${LIBDIR} -l${LIBNAME} -o scanner
 
 clean:
 	rm -f scanner pingtest

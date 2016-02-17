@@ -1,0 +1,18 @@
+src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h" flags=S {
+ src=src CD=. flags=S {
+  RF24.cpp
+  RF24.h
+  RF24_config.h
+  gpio_sun4i.cpp
+  gpio_sun4i.h
+  gpio_sun7i.cpp
+  gpio_sun7i.h
+  nRF24L01.h
+  spi.cpp
+  spi.h
+ }
+ test=test CD=. {
+  pingtest.cpp
+  scanner.cpp
+ }
+}
