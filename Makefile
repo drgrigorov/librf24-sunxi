@@ -4,10 +4,14 @@ LIB=librf24-sunxi
 LIBNAME=$(LIB).so.1.0
 OBJDIR=obj/
 LIBDIR=lib/
+TESTDIR=test/
 
 CCFLAGS=-Ofast -mfpu=vfp -mfloat-abi=hard
 
-all:librf24-sun7i
+all:librf24-sun7i test
+
+test:
+	make -C ${TESTDIR}
 
 librf24-sun7i:${OBJDIR}spi.o ${OBJDIR}gpio_sun7i.o ${OBJDIR}RF24_SUN7I.o
 	g++ -shared -Wl,-soname,$@.so.1 ${CCFLAGS} -o ${LIBDIR}${LIBNAME} $^
@@ -31,8 +35,9 @@ ${OBJDIR}RF24_SUN4I.o:src/RF24.cpp
 
 clean:
 	rm -rf ${OBJDIR}*.o ${LIBDIR}${LIBNAME}
+	make -C ${TESTDIR} clean
 
-install:
+install:all
 	@echo "[Install]"
 	@if ( test ! -d ${PREFIX}lib ) ; then mkdir -p ${PREFIX}lib ; fi
 	@install -m 0755 ${LIBDIR}${LIBNAME} ${PREFIX}${LIBDIR}

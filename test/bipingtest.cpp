@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 	char* szDeviceName = 0;
 	bool bTransmitter = false;
 
-	if (argc < 2)
+	if (argc < 3)
 	{
 		printf("Not enough arguments\n");
 		PrintUsage( argv[0] );
@@ -116,9 +116,23 @@ int main(int argc, char** argv)
 		}
 	}
 
+	int CE = 0, CSN = 0;
+
+	//lame but works for now
+	if ( strstr( szDeviceName, "spidev1" ) )
+	{
+		CE = UEXT1_CE;
+		CSN = UEXT1_CSN;
+	}
+	else
+	{
+		CE = UEXT2_CE;
+		CSN = UEXT2_CSN;
+	}
+
 	// CE - PI14
 	// CSN - PI15
-	RF24 radio(SUNXI_GPI(14), SUNXI_GPI(15), szDeviceName);
+	RF24 radio(CE, CSN, szDeviceName);
 
         setup(radio);
         while(1) loop(radio);

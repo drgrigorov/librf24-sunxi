@@ -39,6 +39,12 @@ public:
 
 	std::string GetTXData() const throw();
 	std::string GetRXData() const throw();
+
+	void Print() const throw();
+
+	SPIIOBuf& SetTXData( std::string& sTXData ) throw();
+
+	uint8_t GetSize() const throw() { return m_nSize; };
 protected:
 	//Because in the SPI the tx and rx buffers are equal the sRXData should be <= sTXData
 	//The sRXData will be truncated to the nSize member for now
@@ -56,6 +62,7 @@ public:
 	SPI(string spidev, int speed, int bits);
 	uint8_t transfer(uint8_t tx_);
 	uint8_t transfer(SPIIOBuf& trxData);
+	uint8_t read(SPIIOBuf& trxData);
 	virtual ~SPI();
 private:
 	string device;

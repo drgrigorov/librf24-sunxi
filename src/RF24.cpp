@@ -11,6 +11,8 @@
 #include "RF24.h"
 #include <unistd.h>
 
+#include <iostream>
+
 static struct timeval start, end;
 static long mtime, seconds, useconds;
 
@@ -46,6 +48,23 @@ long __millis()
 }
 
 
+ConfigReg::ConfigReg( uint8_t nValue ) throw()
+{
+	m_nVal.nVal = nValue;
+}
+
+void ConfigReg::Print() const throw()
+{
+	std::cout <<
+		"MASK_RX_DR: " << (unsigned int) m_nVal.bf.bMASK_RX_DR << std::endl <<
+		"MASK_TX_DS: " << (unsigned int) m_nVal.bf.bMASK_TX_DS << std::endl <<
+		"MASK_MAX_RT: " << (unsigned int) m_nVal.bf.bMASK_MAX_RT << std::endl <<
+		"EN_CRC: " << (unsigned int) m_nVal.bf.bEN_CRC << std::endl <<
+		"CRCO: " << (unsigned int) m_nVal.bf.bCRCO << std::endl <<
+		"PWR_UP: " << (unsigned int) m_nVal.bf.bPWR_UP << std::endl <<
+		"PRIM_RX: " << (unsigned int) m_nVal.bf.bPRIM_RX << std::endl;
+}
+
 /****************************************************************************/
 
 void RF24::csn(int mode)
@@ -74,6 +93,33 @@ uint8_t RF24::read_register(uint8_t reg, uint8_t* buf, uint8_t len)
   csn(HIGH);
 
   return status;
+}
+
+/****************************************************************************/
+
+bool RF24::read_register(uint8_t reg, std::string& res)
+{
+	bool ret = false;
+	//I believe spidev lowers and raises CSN by itself, but to keep thinkgs
+	//similar I will do it manually as well
+	csn(LOW);
+
+	std::string sToSend;
+	//First byte is the register command
+	sToSend.append( 1, R_REGISTER | (REGISTER_MASK & reg) );
+	//Initialize the rest of the tx buffer with 0 to match the RX (result) size
+	sToSend.append(  res.size() - 1, 0);
+	SPIIOBuf Buf( sToSend );
+	ret = spi->transfer( Buf );
+
+	if (ret) 
+	{
+		res = Buf.GetRXData();
+	}
+
+	csn(HIGH);
+
+	return ret;
 }
 
 /****************************************************************************/
