@@ -75,13 +75,13 @@ void SPIIOBuf::Print() const throw()
 {
 	//For now just use old stuff. If this function is actually required out of
 	//the debuggin purposes should be reworked.
-	printf("SPIIOBuf| size: %d\n", m_nSize );
-	printf("SPIIOBuf| tx size: %d\n", m_sTXData.size() );
+	printf("SPIIOBuf| size %d\n", m_nSize );
+	printf("SPIIOBuf| tx (size=%d): ", m_sTXData.size() );
 	for (uint8_t i=0; i < m_sTXData.size(); i++ )
 	{
 		printf("%02x, ", m_sTXData[i] );
 	}
-	printf("\nSPIIOBuf| rx size: %d\n", m_sRXData.size() );
+	printf("\nSPIIOBuf| rx (size=%d): ", m_sRXData.size() );
 	for (uint8_t i=0; i < m_sRXData.size(); i++ )
 	{
 		printf("%02x, ", m_sRXData[i] );
@@ -235,44 +235,40 @@ uint8_t SPI::transfer(SPIIOBuf& trxData)
 		perror("ioctl spi_transfer");
 	}
 
-	//for (int i=0; i< sizeof(xfer)/sizeof(tr[0]); i++)
-	//{
-		//printf("tr\n" );
-		//PrintSPIMsg( tr );
-	//}
-
+	//printf("tr\n" );
+	//PrintSPIMsg( tr );
 
 	//trxData.Print();
 	//printf("#####\n");
 	return ret;
 }
 
-uint8_t SPI::transfer(uint8_t tx_)
-{
-	int ret;
-	// One byte is transfered at once
-	uint8_t tx[] = {0};
-	tx[0] = tx_;
-
-	uint8_t rx[ARRAY_SIZE(tx)] = {0};
-	struct spi_ioc_transfer tr;
-	tr.tx_buf = (unsigned long)tx;
-	tr.rx_buf = (unsigned long)rx;
-	tr.len = ARRAY_SIZE(tx);
-	tr.delay_usecs = 0;
-//	tr.interbyte_usecs = 10;
-	tr.speed_hz = this->speed;
-	tr.bits_per_word = this->bits;
-
-	ret = ioctl(this->fd, SPI_IOC_MESSAGE(1), &tr);
-	if (ret < 1)
-	{
-		perror("can't send spi message");
-		abort();
-	}
-
-	return rx[0];
-}
+//uint8_t SPI::transfer(uint8_t tx_)
+//{
+//	int ret;
+//	// One byte is transfered at once
+//	uint8_t tx[] = {0};
+//	tx[0] = tx_;
+//
+//	uint8_t rx[ARRAY_SIZE(tx)] = {0};
+//	struct spi_ioc_transfer tr;
+//	tr.tx_buf = (unsigned long)tx;
+//	tr.rx_buf = (unsigned long)rx;
+//	tr.len = ARRAY_SIZE(tx);
+//	tr.delay_usecs = 0;
+////	tr.interbyte_usecs = 10;
+//	tr.speed_hz = this->speed;
+//	tr.bits_per_word = this->bits;
+//
+//	ret = ioctl(this->fd, SPI_IOC_MESSAGE(1), &tr);
+//	if (ret < 1)
+//	{
+//		perror("can't send spi message");
+//		abort();
+//	}
+//
+//	return rx[0];
+//}
 
 SPI::~SPI() {
 	close(this->fd);

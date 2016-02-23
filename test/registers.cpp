@@ -1,30 +1,11 @@
 #include <cstdlib>
+#include <cassert>
 #include <iostream>
 #include "RF24.h"
 #include "nRF24L01.h"
 #include "gpio_sun7i.h"
 
 using namespace std;
-const uint64_t pipes[2] = {0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL};
-
-void setup(RF24& radio)
-{
-        radio.begin();
-        // enable dynamic payloads
-        radio.enableDynamicPayloads();
-        // optionally, increase the delay between retries & # of retries
-        radio.setRetries(15, 15);
-        radio.setDataRate(RF24_250KBPS);
-        // Open pipes to other nodes for communication
-        // Open 'our' pipe for writing
-        // Open the 'other' pipe for reading, in position #1 (we can have up to 5 pipes open for reading)
-        radio.openWritingPipe(pipes[0]);
-        radio.openReadingPipe(1, pipes[1]);
-        // Start listening
-        radio.startListening();
-        // Dump the configuration of the rf unit for debugging
-        //radio.printDetails();
-}
 
 void PrintUsage( const char* szName )
 {
@@ -36,7 +17,7 @@ int main(int argc, char** argv)
 	char* szDeviceName = 0;
 	bool bTransmitter = false;
 
-	if (argc < 2)
+	if (argc < 3)
 	{
 		printf("Not enough arguments\n");
 		PrintUsage( argv[0] );
@@ -61,6 +42,7 @@ int main(int argc, char** argv)
 				break;
 		}
 	}
+	assert( szDeviceName != 0 );
 
 	// CE - PI14
 	// CSN - PI15
@@ -76,14 +58,14 @@ int main(int argc, char** argv)
 //PB18 	A8 		I/O 	TWI1_SCK - CE
 //PI16 	E17 	I/O 	SPI1_CS0 - CSN
 
-	//SPI(string spidev, int speed, int bits);
 	SPI testSPI(szDeviceName, 1000000, 8 );
 	GPIO testGPIO;
 
 	int CE = 0, CSN = 0;
 
 	//lame but works for now
-	if ( strstr( szDeviceName, "spidev1" ) )
+	//NOTE: At the time of testing the spidev2 is linked to the device on UEXT1
+	if ( strstr( szDeviceName, "spidev2" ) )
 	{
 		CE = UEXT1_CE;
 		CSN = UEXT1_CSN;
@@ -111,26 +93,39 @@ int main(int argc, char** argv)
 	testGPIO.sunxi_gpio_output(CSN, HIGH);
 	testBuf.Print();
 	ConfigReg testConfReg(testBuf.GetRXData()[1]);
-	testConfReg.Print();
+	testConfReg.Print( std::cout );
 
 	reg = CONFIG;
 	std::cout << "=============================================" << std::endl;
 	std::cout << "Writing CONFIG register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( W_REGISTER | (REGISTER_MASK & reg) );
-	s2bReg[1] = 0x00;
+	s2bReg[1] = 0x03;
 	testGPIO.sunxi_gpio_output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
 	testGPIO.sunxi_gpio_output(CSN, HIGH);
 	testBuf.Print();
 
+	//reg = CONFIG;
+	//std::cout << "=============================================" << std::endl;
+	//std::cout << "Requesting CONFIG register 6B " << (unsigned int)reg << std::endl;
+	//s6bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
+	//testGPIO.sunxi_gpio_output(CSN, LOW);
+	//testSPI.transfer( testBuf.SetTXData( s6bReg ) );
+	//testGPIO.sunxi_gpio_output(CSN, HIGH);
+	//testBuf.Print();
+	//ConfigReg testConfReg2(testBuf.GetRXData()[1]);
+	//testConfReg2.Print( std::cout );
+
 	reg = CONFIG;
 	std::cout << "=============================================" << std::endl;
-	std::cout << "Requesting CONFIG register 6B " << (unsigned int)reg << std::endl;
-	s6bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
+	std::cout << "Requesting CONFIG register " << (unsigned int)reg << std::endl;
+	s2bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
 	testGPIO.sunxi_gpio_output(CSN, LOW);
-	testSPI.transfer( testBuf.SetTXData( s6bReg ) );
+	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
 	testGPIO.sunxi_gpio_output(CSN, HIGH);
 	testBuf.Print();
+	ConfigReg testConfReg3(testBuf.GetRXData()[1]);
+	testConfReg3.Print( std::cout );
 
 	reg = STATUS;
 	std::cout << "=============================================" << std::endl;
@@ -140,6 +135,8 @@ int main(int argc, char** argv)
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
 	testGPIO.sunxi_gpio_output(CSN, HIGH);
 	testBuf.Print();
+	StatusReg testStatusReg(testBuf.GetRXData()[1]);
+	testStatusReg.Print( std::cout );
 
 	reg = SETUP_AW;
 	std::cout << "=============================================" << std::endl;

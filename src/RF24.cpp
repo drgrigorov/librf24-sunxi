@@ -53,16 +53,33 @@ ConfigReg::ConfigReg( uint8_t nValue ) throw()
 	m_nVal.nVal = nValue;
 }
 
-void ConfigReg::Print() const throw()
+std::ostream& ConfigReg::Print( std::ostream& Out ) const throw()
 {
-	std::cout <<
-		"MASK_RX_DR: " << (unsigned int) m_nVal.bf.bMASK_RX_DR << std::endl <<
-		"MASK_TX_DS: " << (unsigned int) m_nVal.bf.bMASK_TX_DS << std::endl <<
-		"MASK_MAX_RT: " << (unsigned int) m_nVal.bf.bMASK_MAX_RT << std::endl <<
-		"EN_CRC: " << (unsigned int) m_nVal.bf.bEN_CRC << std::endl <<
-		"CRCO: " << (unsigned int) m_nVal.bf.bCRCO << std::endl <<
-		"PWR_UP: " << (unsigned int) m_nVal.bf.bPWR_UP << std::endl <<
-		"PRIM_RX: " << (unsigned int) m_nVal.bf.bPRIM_RX << std::endl;
+	Out <<
+		"MASK_RX_DR: "	<< (unsigned int) m_nVal.bf.bMASK_RX_DR		<< " " <<
+		"MASK_TX_DS: "	<< (unsigned int) m_nVal.bf.bMASK_TX_DS		<< " " <<
+		"MASK_MAX_RT: " << (unsigned int) m_nVal.bf.bMASK_MAX_RT	<< " " <<
+		"EN_CRC: "		<< (unsigned int) m_nVal.bf.bEN_CRC 		<< " " <<
+		"CRCO: "		<< (unsigned int) m_nVal.bf.bCRCO 			<< " " <<
+		"PWR_UP: "		<< (unsigned int) m_nVal.bf.bPWR_UP 		<< " " <<
+		"PRIM_RX: "		<< (unsigned int) m_nVal.bf.bPRIM_RX 		<< std::endl;
+	return Out;
+}
+
+StatusReg::StatusReg( uint8_t nValue ) throw()
+{
+	m_nVal.nVal = nValue;
+}
+
+std::ostream& StatusReg::Print( std::ostream& Out ) const throw()
+{
+	Out <<
+	  "TX_FULL: "	<< (unsigned int) m_nVal.bf.bTX_FULL	<< " " <<
+	  "RX_P_NO: "	<< (unsigned int) m_nVal.bf.bRX_P_NO	<< " " <<
+	  "MAX_RT: "	<< (unsigned int) m_nVal.bf.bMAX_RT 	<< " " <<
+	  "TX_DS: "		<< (unsigned int) m_nVal.bf.bTX_DS  	<< " " <<
+	  "RX_DR: "		<< (unsigned int) m_nVal.bf.bRX_DR  	<< std::endl;
+	return Out;                                         
 }
 
 /****************************************************************************/
@@ -81,175 +98,240 @@ void RF24::ce(int mode)
 
 /****************************************************************************/
 
-uint8_t RF24::read_register(uint8_t reg, uint8_t* buf, uint8_t len)
-{
-  uint8_t status;
-
-  csn(LOW);
-  status = spi->transfer(R_REGISTER | (REGISTER_MASK & reg));
-  while (len--)
-    *buf++ = spi->transfer(0xff);
-
-  csn(HIGH);
-
-  return status;
-}
-
-/****************************************************************************/
-
-bool RF24::read_register(uint8_t reg, std::string& res)
+bool RF24::read_register(uint8_t reg, std::string& sRes)
 {
 	bool ret = false;
+	if (sRes.size() <= 0)
+	{
+		return false;
+	}
 	//I believe spidev lowers and raises CSN by itself, but to keep thinkgs
 	//similar I will do it manually as well
-	csn(LOW);
 
 	std::string sToSend;
 	//First byte is the register command
 	sToSend.append( 1, R_REGISTER | (REGISTER_MASK & reg) );
-	//Initialize the rest of the tx buffer with 0 to match the RX (result) size
-	sToSend.append(  res.size() - 1, 0);
+	//Initialize the sRest of the tx buffer with 0 to match the RX (sResult) size
+	sToSend.append(  sRes.size() - 1, 0);
 	SPIIOBuf Buf( sToSend );
+
+	csn(LOW);
 	ret = spi->transfer( Buf );
+	csn(HIGH);
 
 	if (ret) 
 	{
-		res = Buf.GetRXData();
+		sRes = Buf.GetRXData();
 	}
-
-	csn(HIGH);
 
 	return ret;
 }
 
 /****************************************************************************/
 
+uint8_t RF24::read_register(uint8_t reg, uint8_t* buf, uint8_t len)
+{
+	uint8_t status;
+
+	//I don't like the way I did the string interface.
+	//Requirement to set explicit size is anoying.
+	std::string sRes(len + 1, 0);
+	status = read_register( reg, sRes );
+	//std::cout << "Reg: [" << (unsigned int)reg << "]: ";
+	//for (uint8_t i = 1; i < sRes.size(); i++ )
+	//{
+	//	std::cout << std::hex << (unsigned int) sRes[i];
+	//}
+	//std::cout << std::endl;
+
+	//Copy all bytes except first
+	memcpy( buf, sRes.c_str() + 1, sRes.size() - 1 );
+	status = sRes[0];
+	return status;
+}
+
+/****************************************************************************/
+
 uint8_t RF24::read_register(uint8_t reg)
 {
-  csn(LOW);
-  spi->transfer(R_REGISTER | (REGISTER_MASK & reg));
-  uint8_t result = spi->transfer(0xff);
+	uint8_t result;
 
-  csn(HIGH);
-  return result;
+	//Two bytes allocated first for status second for register value
+	std::string sRes( 2, 0 );
+	read_register( reg, sRes );
+	//Return second byte - the register value
+	result = sRes[1];
+
+	return result;
+}
+
+/****************************************************************************/
+
+uint8_t RF24::write_register(uint8_t reg, const std::string& sVal)
+{
+	bool ret = false;
+	uint8_t nStatus = 0;
+	if (sVal.size() <= 0)
+	{
+		return false;
+	}
+
+	//I believe spidev lowers and raises CSN by itself, but to keep thinkgs
+	//similar I will do it manually as well
+	csn(LOW);
+
+	std::string sToSend;
+	//First byte is the register command
+	sToSend.append( 1, W_REGISTER | (REGISTER_MASK & reg) );
+	//Append the sVal to the tx buffer
+	sToSend += sVal;
+	SPIIOBuf Buf( sToSend );
+	ret = spi->transfer( Buf );
+
+	if (ret) 
+	{
+		nStatus = Buf.GetRXData()[0];
+	}
+
+	csn(HIGH);
+
+	return nStatus;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::write_register(uint8_t reg, const uint8_t* buf, uint8_t len)
 {
-  uint8_t status;
+	uint8_t status;
 
-  csn(LOW);
-  status = spi->transfer( W_REGISTER | ( REGISTER_MASK & reg ) );
-  while ( len-- )
-    spi->transfer(*buf++);
+	std::string sRes((const char*)buf, len);
+	status = write_register( reg, sRes );
 
-  csn(HIGH);
-
-  return status;
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::write_register(uint8_t reg, uint8_t value)
 {
-  uint8_t status;
+	uint8_t status;
 
-  IF_SERIAL_DEBUG(printf("write_register(%02x,%02x)\r\n", reg, value));
+	IF_SERIAL_DEBUG(printf("write_register(%02x,%02x)\r\n", reg, value));
 
-  csn(LOW);
-  status = spi->transfer( W_REGISTER | ( REGISTER_MASK & reg ) );
-  spi->transfer(value);
-  csn(HIGH);
+	std::string sRes( 1, value );
+	status = write_register( reg, sRes );
 
-  return status;
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::write_payload(const void* buf, uint8_t len)
 {
-  uint8_t status;
+	uint8_t status = 0;
 
-  const uint8_t* current = reinterpret_cast<const uint8_t*>(buf);
+	const uint8_t* current = reinterpret_cast<const uint8_t*>(buf);
 
-  uint8_t data_len = min(len,payload_size);
-  uint8_t blank_len = dynamic_payloads_enabled ? 0 : payload_size - data_len;
+	//uint8_t data_len = min(len,payload_size);
+	//uint8_t blank_len = dynamic_payloads_enabled ? 0 : payload_size - data_len;
 
-  //printf("[Writing %u bytes %u blanks]",data_len,blank_len);
+	//printf("[Writing %u bytes %u blanks]",data_len,blank_len);
 
-  csn(LOW);
-  status = spi->transfer( W_TX_PAYLOAD );
-  while ( data_len-- )
-    spi->transfer(*current++);
-  while ( blank_len-- )
-    spi->transfer(0);
-  csn(HIGH);
+	csn(LOW);
 
-  return status;
+	SPIIOBuf Buf( 1 ); //size is irrelevant here
+	std::string sToWrite;
+	sToWrite.append( 1, W_TX_PAYLOAD );
+	sToWrite.append( (const char*) current, len );
+
+	spi->transfer( Buf.SetTXData( sToWrite ) );
+
+	csn(HIGH);
+	status = Buf.GetRXData()[0];
+
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::read_payload(void* buf, uint8_t len)
 {
-  uint8_t status;
-  uint8_t* current = reinterpret_cast<uint8_t*>(buf);
+	uint8_t status;
+	//uint8_t* current = reinterpret_cast<uint8_t*>(buf);
 
-  uint8_t data_len = min(len,payload_size);
-  uint8_t blank_len = dynamic_payloads_enabled ? 0 : payload_size - data_len;
+	//uint8_t data_len = min(len,payload_size);
+	//uint8_t blank_len = dynamic_payloads_enabled ? 0 : payload_size - data_len;
 
-  //printf("[Reading %u bytes %u blanks]",data_len,blank_len);
+	//printf("[Reading %u bytes %u blanks]",data_len,blank_len);
 
-  csn(LOW);
-  status = spi->transfer( R_RX_PAYLOAD );
-  while ( data_len-- )
-    *current++ = spi->transfer(0xff);
-  while ( blank_len-- )
-    spi->transfer(0xff);
-  csn(HIGH);
+	csn(LOW);
+	SPIIOBuf Buf( 1 ); //size is irrelevant here
+	std::string sToWrite;
+	sToWrite.append( 1, R_RX_PAYLOAD );
+	//Append zeroes until read len is reached
+	sToWrite.append( len -1, 0);
 
-  return status;
+	spi->transfer( Buf.SetTXData( sToWrite ) );
+
+	csn(HIGH);
+	memcpy(buf, Buf.GetRXData().c_str(), len );
+	status = Buf.GetRXData()[0];
+
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::flush_rx(void)
 {
-  uint8_t status;
+	uint8_t status;
+	std::string sCommand(2, 0);
+	sCommand[0] = FLUSH_RX;
+	SPIIOBuf Buf( sCommand ); 
 
-  csn(LOW);
-  status = spi->transfer( FLUSH_RX );
-  csn(HIGH);
+	csn(LOW);
+	status = spi->transfer( Buf );
+	csn(HIGH);
 
-  return status;
+	status = Buf.GetRXData()[0];
+
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::flush_tx(void)
 {
-  uint8_t status;
+	uint8_t status;
+	std::string sCommand(2, 0);
+	sCommand[0] = FLUSH_TX;
+	SPIIOBuf Buf( sCommand ); 
 
-  csn(LOW);
-  status = spi->transfer( FLUSH_TX );
-  csn(HIGH);
+	csn(LOW);
+	status = spi->transfer( Buf );
+	csn(HIGH);
 
-  return status;
+	status = Buf.GetRXData()[0];
+
+	return status;
 }
 
 /****************************************************************************/
 
 uint8_t RF24::get_status(void)
 {
-  uint8_t status;
+	uint8_t status;
+	std::string sCommand(2, 0);
+	sCommand[0] = 0xff;
+	SPIIOBuf Buf( sCommand ); 
 
-  csn(LOW);
-  status = spi->transfer( NOP );
-  csn(HIGH);
+	csn(LOW);
+	status = spi->transfer( Buf );
+	csn(HIGH);
 
-  return status;
+	status = Buf.GetRXData()[0];
+
+	return status;
 }
 
 /****************************************************************************/
@@ -303,7 +385,7 @@ void RF24::print_address_register(const char* name, uint8_t reg, uint8_t qty)
     printf(" 0x");
     uint8_t* bufptr = buffer + sizeof buffer;
     while( --bufptr >= buffer )
-      printf("%02x", *bufptr);
+      printf("%02x ", *bufptr);
   }
 
   printf("\r\n");
@@ -620,14 +702,19 @@ void RF24::startWrite(const void* buf, uint8_t len)
 
 uint8_t RF24::getDynamicPayloadSize(void)
 {
-  uint8_t result = 0;
+	uint8_t result = 0;
 
-  csn(LOW);
-  spi->transfer(R_RX_PL_WID);
-  result = spi->transfer(0xff);
-  csn(HIGH);
+	std::string sCommand(2, 0);
+	sCommand[0] = R_RX_PL_WID;
+	SPIIOBuf Buf( sCommand ); 
 
-  return result;
+	csn(LOW);
+	spi->transfer( Buf );
+	csn(HIGH);
+
+	result = Buf.GetRXData()[1];
+
+	return result;
 }
 
 /****************************************************************************/
@@ -754,10 +841,14 @@ void RF24::openReadingPipe(uint8_t child, uint64_t address)
 
 void RF24::toggle_features(void)
 {
-  csn(LOW);
-  spi->transfer(ACTIVATE);
-  spi->transfer(0x73);
-  csn(HIGH);
+	std::string sCommand(2, 0);
+	sCommand[0] = ACTIVATE;
+	sCommand[1] = 0x73;
+	SPIIOBuf Buf( sCommand ); 
+
+	csn(LOW);
+	spi->transfer( Buf );
+	csn(HIGH);
 }
 
 /****************************************************************************/
@@ -817,16 +908,19 @@ void RF24::enableAckPayload(void)
 
 void RF24::writeAckPayload(uint8_t pipe, const void* buf, uint8_t len)
 {
-  const uint8_t* current = reinterpret_cast<const uint8_t*>(buf);
+	const uint8_t* current = reinterpret_cast<const uint8_t*>(buf);
 
-  csn(LOW);
-  spi->transfer(W_ACK_PAYLOAD | (pipe & 0b111));
-  const uint8_t max_payload_size = 32;
-  uint8_t data_len = min(len, max_payload_size);
-  while (data_len--)
-    spi->transfer(*current++);
+	std::string sToWrite;
+	sToWrite.append(1, W_ACK_PAYLOAD | (pipe & 0b111));
+	const uint8_t max_payload_size = 32;
+	uint8_t data_len = min(len, max_payload_size);
+	while (data_len--)
+		sToWrite.append(1, *current++);
 
-  csn(HIGH);
+	SPIIOBuf Buf( sToWrite );
+	csn(LOW);
+	spi->transfer( Buf );
+	csn(HIGH);
 }
 
 /****************************************************************************/

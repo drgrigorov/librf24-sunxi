@@ -60,7 +60,7 @@ private:
 class SPI {
 public:
 	SPI(string spidev, int speed, int bits);
-	uint8_t transfer(uint8_t tx_);
+	//uint8_t transfer(uint8_t tx_);
 	uint8_t transfer(SPIIOBuf& trxData);
 	uint8_t read(SPIIOBuf& trxData);
 	virtual ~SPI();
