@@ -1,0 +1,12 @@
+//UEXT1
+//PB20 	C8 		I/O 	TWI2_SCK - CE
+//PB14 	A10 	I/O 	SPI2_CS0 - CSN
+
+//UEXT2
+//PB18 	A8 		I/O 	TWI1_SCK - CE
+//PI16 	E17 	I/O 	SPI1_CS0 - CSN
+
+|Label	| Device    | CSN  | CE   |
+|------ | --------- | ---- | ---- |
+|UEXT1  | spidev2.0 | PB14 | BP20 |
+|UEXT2  | spidev1.0 | PI16 | BP18 |

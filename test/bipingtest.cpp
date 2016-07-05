@@ -94,6 +94,9 @@ void loopTX(RF24& radio)
 
 void loopRX(RF24& radio)
 {
+        static char send_payload[] = "YYYY";
+		static int nRetr = 0, nRcv = 0;
+
         // Now, continue listening
         radio.startListening();
 
@@ -104,7 +107,7 @@ void loopRX(RF24& radio)
         while (!radio.available() && !timeout)
                 if (__millis() - started_waiting_at > 500) timeout = true;
         // Describe the results
-        if (timeout) printf("Failed, response timed out.\n\r");
+        if (timeout) printf("Receiving attempt [%i] timed out. Retrying...\n\r", ++nRetr );
         else
         {
                 // Grab the response, compare, and send to debugging spew
@@ -113,16 +116,15 @@ void loopRX(RF24& radio)
                 // Put a zero at the end for easy printing
                 receive_payload[len] = 0;
                 // Spew it
-                printf("Got request size=%i value=%s\n\r", len, receive_payload);
+                printf("Got request no= %i size=%i value=%s\n\r", ++nRcv, len, receive_payload);
+				
+				// First, stop listening so we can talk.
+				radio.stopListening();
+
+				// Take the time, and send it.  This will block until complete
+				printf("Now sending length %i...", sizeof(send_payload));
+				radio.write(send_payload, sizeof(send_payload));
         }
-        static char send_payload[] = "YYYY";
-
-        // First, stop listening so we can talk.
-        radio.stopListening();
-
-        // Take the time, and send it.  This will block until complete
-        printf("Now sending length %i...", sizeof(send_payload));
-        radio.write(send_payload, sizeof(send_payload));
 
         sleep(1);
 }

@@ -19,4 +19,5 @@ src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h Mak
   scanner.cpp
   Makefile
  }
+ uextdevs.txt
 }

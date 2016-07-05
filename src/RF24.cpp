@@ -105,7 +105,7 @@ bool RF24::read_register(uint8_t reg, std::string& sRes)
 	{
 		return false;
 	}
-	//I believe spidev lowers and raises CSN by itself, but to keep thinkgs
+	//I believe spidev lowers and raises CSN by itself, but to keep things
 	//similar I will do it manually as well
 
 	std::string sToSend;
@@ -176,7 +176,7 @@ uint8_t RF24::write_register(uint8_t reg, const std::string& sVal)
 		return false;
 	}
 
-	//I believe spidev lowers and raises CSN by itself, but to keep thinkgs
+	//I believe spidev lowers and raises CSN by itself, but to keep things
 	//similar I will do it manually as well
 	csn(LOW);
 
