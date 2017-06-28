@@ -12,7 +12,7 @@ int next_payload_size = min_payload_size;
 
 char receive_payload[max_payload_size+1]; // +1 to allow room for a terminating NULL char
 
-void setup(RF24& radio)
+void setupTX(RF24& radio)
 {
         radio.begin();
         // enable dynamic payloads
@@ -31,7 +31,26 @@ void setup(RF24& radio)
         radio.printDetails();
 }
 
-void loop(RF24& radio)
+void setupRX(RF24& radio)
+{
+        radio.begin();
+        // enable dynamic payloads
+        radio.enableDynamicPayloads();
+        // optionally, increase the delay between retries & # of retries
+        radio.setRetries(15, 15);
+        radio.setDataRate(RF24_250KBPS);
+        // Open pipes to other nodes for communication
+        // Open 'our' pipe for writing
+        // Open the 'other' pipe for reading, in position #1 (we can have up to 5 pipes open for reading)
+        radio.openWritingPipe(pipes[1]);
+        radio.openReadingPipe(1, pipes[0]);
+        // Start listening
+        radio.startListening();
+        // Dump the configuration of the rf unit for debugging
+        radio.printDetails();
+}
+
+void loopTX(RF24& radio)
 {
         // Ping out.
         // The payload will always be the same, what will change is how much of it we send.
@@ -73,6 +92,43 @@ void loop(RF24& radio)
         sleep(1);
 }
 
+void loopRX(RF24& radio)
+{
+        static char send_payload[] = "YYYY";
+		static int nRetr = 0, nRcv = 0;
+
+        // Now, continue listening
+        radio.startListening();
+
+        // Wait here until we get a response, or timeout
+        long started_waiting_at = __millis();
+
+        bool timeout = false;
+        while (!radio.available() && !timeout)
+                if (__millis() - started_waiting_at > 500) timeout = true;
+        // Describe the results
+        if (timeout) printf("Receiving attempt [%i] timed out. Retrying...\n\r", ++nRetr );
+        else
+        {
+                // Grab the response, compare, and send to debugging spew
+                uint8_t len = radio.getDynamicPayloadSize();
+                radio.read(receive_payload, len);
+                // Put a zero at the end for easy printing
+                receive_payload[len] = 0;
+                // Spew it
+                printf("Got request no= %i size=%i value=%s\n\r", ++nRcv, len, receive_payload);
+				
+				// First, stop listening so we can talk.
+				radio.stopListening();
+
+				// Take the time, and send it.  This will block until complete
+				printf("Now sending length %i...", sizeof(send_payload));
+				radio.write(send_payload, sizeof(send_payload));
+        }
+
+        sleep(1);
+}
+
 void PrintUsage( const char* szName )
 {
 	printf("Usage: %s <-r|-t> <-d device_path>\n", szName );
@@ -83,7 +139,7 @@ int main(int argc, char** argv)
 	char* szDeviceName = 0;
 	bool bTransmitter = false;
 
-	if (argc < 2)
+	if (argc < 3)
 	{
 		printf("Not enough arguments\n");
 		PrintUsage( argv[0] );
@@ -116,12 +172,32 @@ int main(int argc, char** argv)
 		}
 	}
 
-	// CE - PI14
-	// CSN - PI15
-	RF24 radio(SUNXI_GPI(14), SUNXI_GPI(15), szDeviceName);
+	int CE = 0, CSN = 0;
 
-        setup(radio);
-        while(1) loop(radio);
+	//lame but works for now
+	if ( strstr( szDeviceName, "spidev2" ) )
+	{
+		CE = UEXT1_CE;
+		CSN = UEXT1_CSN;
+	}
+	else
+	{
+		CE = UEXT2_CE;
+		CSN = UEXT2_CSN;
+	}
 
-        return 0;
+	RF24 radio(CE, CSN, szDeviceName);
+
+	if (bTransmitter)
+	{
+		setupTX(radio);
+		while(1) loopTX(radio);
+	}
+	else
+	{
+		setupRX(radio);
+		while(1) loopRX(radio);
+	}
+
+	return 0;
 }
