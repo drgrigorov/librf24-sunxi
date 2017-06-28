@@ -1,4 +1,4 @@
-src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h" flags=S {
+src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h Makefile" flags=S {
  src=src CD=. flags=S {
   RF24.cpp
   RF24.h
@@ -11,8 +11,11 @@ src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h" fl
   spi.cpp
   spi.h
  }
- test=test CD=. {
+ test=test CD=. flags=S {
+  bipingtest.cpp
+  registers.cpp
   pingtest.cpp
   scanner.cpp
+  Makefile
  }
 }
