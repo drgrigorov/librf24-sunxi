@@ -154,6 +154,12 @@ enum sunxi_gpio_number {
 #define SUNXI_GPF4_SDC0_D3	(2)
 #define SUNXI_GPF4_UART0_RX	(4)
 
+#define UEXT1_CE SUNXI_GPB(20);
+#define UEXT1_CSN SUNXI_GPB(14);
+
+#define UEXT2_CE SUNXI_GPB(18);
+#define UEXT2_CSN SUNXI_GPI(16);
+
 class GPIO {
 public:
 	GPIO(void);
