@@ -54,6 +54,54 @@ typedef enum { RF24_CRC_DISABLED = 0, RF24_CRC_8, RF24_CRC_16 } rf24_crclength_e
  * Driver for nRF24L01(+) 2.4GHz Wireless Transceiver
  */
 
+class ConfigReg
+{
+public:
+  ConfigReg( uint8_t nValue ) throw();
+  std::ostream& Print( std::ostream& Out ) const throw();
+
+private:
+  union
+  {
+#pragma pack(push,1)
+	struct  {
+	  uint8_t bPRIM_RX:1;
+	  uint8_t bPWR_UP:1;
+	  uint8_t bCRCO:1;
+	  uint8_t bEN_CRC:1;
+	  uint8_t bMASK_MAX_RT:1;
+	  uint8_t bMASK_TX_DS:1;
+	  uint8_t bMASK_RX_DR:1;
+	  uint8_t Reserved:1;
+	} bf;
+#pragma pack(pop)
+	uint8_t nVal;//encoded byte
+  }m_nVal;
+};
+
+class StatusReg
+{
+public:
+  StatusReg( uint8_t nValue ) throw();
+  std::ostream& Print( std::ostream& Out ) const throw();
+
+private:
+  union
+  {
+#pragma pack(push,1)
+	struct  {
+	  uint8_t bTX_FULL:1;
+	  uint8_t bRX_P_NO:3;
+	  uint8_t bMAX_RT:1;
+	  uint8_t bTX_DS:1;
+	  uint8_t bRX_DR:1;
+	  uint8_t bReserved:1;
+	} bf;
+#pragma pack(pop)
+	uint8_t nVal;//encoded byte
+  }m_nVal;
+};
+
 class RF24
 {
 private:
@@ -107,6 +155,15 @@ protected:
   void ce(int mode);
 
   /**
+   * Read a chunk of data in from a register in std::string
+   *
+   * @param reg Which register. Use constants from nRF24L01.h
+   * @param buf Where to put the data
+   * @return success or not
+   */
+  bool read_register(uint8_t reg, std::string& sRes);
+
+  /**
    * Read a chunk of data in from a register
    *
    * @param reg Which register. Use constants from nRF24L01.h
@@ -123,6 +180,15 @@ protected:
    * @return Current value of register @p reg
    */
   uint8_t read_register(uint8_t reg);
+
+  /**
+   * Read a chunk of data in from a register in std::string
+   *
+   * @param reg Which register. Use constants from nRF24L01.h
+   * @param buf Where to put the data
+   * @return success or not
+   */
+  uint8_t write_register(uint8_t reg, const std::string& sVal);
 
   /**
    * Write a chunk of data to a register
