@@ -10,14 +10,13 @@ CCFLAGS=-Ofast -mfpu=vfp -mfloat-abi=hard
 
 all:librf24-sun7i test
 
-test:
-	make -C ${TESTDIR}
-
+test: all
+	$(MAKE) -C ${TESTDIR}
 librf24-sun7i:${OBJDIR}spi.o ${OBJDIR}gpio_sun7i.o ${OBJDIR}RF24_SUN7I.o
-	g++ -shared -Wl,-soname,$@.so.1 ${CCFLAGS} -o ${LIBDIR}${LIBNAME} $^
+	g++ -shared -Wl,-soname,${LIBNAME} ${CCFLAGS} -o ${LIBDIR}${LIBNAME} $^
 
 librf24-sun4i:${OBJDIR}spi.o ${OBJDIR}gpio_sun4i.o ${OBJDIR}RF24_SUN4I.o
-	g++ -shared -Wl,-soname,$@.so.1 ${CCFLAGS} -o ${LIBDIR}${LIBNAME} $^
+	g++ -shared -Wl,-soname,${LIBNAME} ${CCFLAGS} -o ${LIBDIR}${LIBNAME} $^
 
 ${OBJDIR}spi.o:src/spi.cpp
 	g++ -Wall -fPIC ${CCFLAGS} -c $^ -o $@
@@ -44,3 +43,5 @@ install:all
 	@ln -sf ${LIBDIR}${LIBNAME} ${PREFIX}${LIBDIR}${LIB}.so.1
 	@ln -sf ${PREFIX}${LIBDIR}${LIB}.so.1 ${PREFIX}${LIBDIR}${LIB}.so
 	@ldconfig
+
+.PHONY: test
