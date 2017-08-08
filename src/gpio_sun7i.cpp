@@ -39,9 +39,10 @@
 #include "gpio_sun7i.h"
 
 GPIO::GPIO(void)
+:
+    gpio_map( NULL ),
+    m_nErr( 0 )
 {
-    gpio_map = NULL;
-    err = 0;
     int fd;
     unsigned int addr_start, addr_offset;
     unsigned int PageSize, PageMask;
@@ -49,7 +50,7 @@ GPIO::GPIO(void)
 
     fd = open("/dev/mem", O_RDWR);
     if(fd < 0) {
-        err = -1;
+        m_nErr = -1;
 	return;
     }
 
@@ -61,7 +62,7 @@ GPIO::GPIO(void)
 
     gpio_map = (long int*)(void *)mmap(0, PageSize*2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, addr_start);
     if(gpio_map == MAP_FAILED) {
-        err = -2;
+        m_nErr = -2;
 	return;
     }
 
@@ -71,7 +72,7 @@ GPIO::GPIO(void)
     close(fd);
 }
 
-int GPIO::sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val)
+int GPIO::set_cfgpin(unsigned int pin, unsigned int val) throw()
 {
     unsigned int cfg;
     unsigned int bank = GPIO_BANK(pin);
@@ -95,7 +96,7 @@ int GPIO::sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val)
     return 0;
 }
 
-int GPIO::sunxi_gpio_get_cfgpin(unsigned int pin)
+int GPIO::get_cfgpin(unsigned int pin) throw()
 {
     unsigned int cfg;
     unsigned int bank = GPIO_BANK(pin);
@@ -111,7 +112,7 @@ int GPIO::sunxi_gpio_get_cfgpin(unsigned int pin)
     return (cfg & 0xf);
 }
 
-int GPIO::sunxi_gpio_output(unsigned int pin, unsigned int val)
+int GPIO::output(unsigned int pin, unsigned int val) throw()
 {
     unsigned int bank = GPIO_BANK(pin);
     unsigned int num = GPIO_NUM(pin);
@@ -130,7 +131,7 @@ int GPIO::sunxi_gpio_output(unsigned int pin, unsigned int val)
     return 0;
 }
 
-int GPIO::sunxi_gpio_input(unsigned int pin)
+int GPIO::input(unsigned int pin) throw()
 {
     unsigned int dat;
     unsigned int bank = GPIO_BANK(pin);
@@ -149,7 +150,7 @@ int GPIO::sunxi_gpio_input(unsigned int pin)
     return (dat & 0x1);
 }
 
-void GPIO::sunxi_gpio_cleanup(void)
+void GPIO::cleanup(void) throw()
 {
     unsigned int PageSize;
     if (gpio_map == NULL)
@@ -157,4 +158,9 @@ void GPIO::sunxi_gpio_cleanup(void)
 
     PageSize = sysconf(_SC_PAGESIZE);
     munmap((void*)gpio_map, PageSize*2);
+}
+
+GPIO::~GPIO()
+{
+	cleanup();
 }

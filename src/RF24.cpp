@@ -86,14 +86,14 @@ std::ostream& StatusReg::Print( std::ostream& Out ) const throw()
 
 void RF24::csn(int mode)
 {
-  gpio->sunxi_gpio_output(csn_pin, mode);
+  gpio->output(csn_pin, mode);
 }
 
 /****************************************************************************/
 
 void RF24::ce(int mode)
 {
-  gpio->sunxi_gpio_output(ce_pin, mode);
+  gpio->output(ce_pin, mode);
 }
 
 /****************************************************************************/
@@ -491,7 +491,7 @@ void RF24::begin(void)
   spi = new SPI(_spidev, 12000000, 8);
   gpio = new GPIO();
 
-  if (gpio->err != 0)
+  if (gpio->GetErr() != 0)
   {
      printf("an error occured during initialization! Aborting! \r\n");
      return;
@@ -500,21 +500,21 @@ void RF24::begin(void)
   __start_timer();
   // Initialize pins
   int ret = 0;
-  ret = gpio->sunxi_gpio_set_cfgpin(ce_pin, OUTPUT);
+  ret = gpio->set_cfgpin(ce_pin, OUTPUT);
   if (ret != 0)
   {
      printf("an error occured during CE_PIN config! Aborting! \r\n");
-     goto cleanup_on_fail;
+	 return;
   }
 
-  ret = gpio->sunxi_gpio_set_cfgpin(csn_pin, OUTPUT);
+  ret = gpio->set_cfgpin(csn_pin, OUTPUT);
   if (ret != 0)
   {
      printf("an error occured during CSN_PIN config! Aborting! \r\n");
-     goto cleanup_on_fail;
+     return;
   }
 
-  ret = gpio->sunxi_gpio_output(csn_pin, HIGH);
+  ret = gpio->output(csn_pin, HIGH);
 
   ce(LOW);
   csn(HIGH);
@@ -566,8 +566,10 @@ void RF24::begin(void)
 
   return;
 
-cleanup_on_fail:
-  gpio->sunxi_gpio_cleanup();
+//cleanup_on_fail:
+  //Later actual exception should be thrown - proceeding with failed GPIO
+  //object is useless
+  //gpio->sunxi_gpio_cleanup();
 }
 
 /****************************************************************************/

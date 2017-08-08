@@ -162,16 +162,22 @@ enum sunxi_gpio_number {
 
 class GPIO {
 public:
+
 	GPIO(void);
-        int err;
-	int sunxi_gpio_input(unsigned int pin);
-	int sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val);
-	int sunxi_gpio_get_cfgpin(unsigned int pin);
-	int sunxi_gpio_output(unsigned int pin, unsigned int val);
-	void sunxi_gpio_cleanup(void);
+	int input(unsigned int pin) throw();
+	int set_cfgpin(unsigned int pin, unsigned int val) throw();
+	int get_cfgpin(unsigned int pin) throw();
+	int output(unsigned int pin, unsigned int val) throw();
+
+	~GPIO();
+
+	int GetErr() const throw() { return m_nErr; }
 private:
 	unsigned int SUNXI_PIO_BASE;
 	long int *gpio_map;
+	int m_nErr;
+
+	void cleanup(void) throw();
 };
 
 #endif

@@ -76,8 +76,8 @@ int main(int argc, char** argv)
 		CSN = UEXT2_CSN;
 	}
 
-	testGPIO.sunxi_gpio_output(CE, LOW);
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CE, LOW);
+	testGPIO.output(CSN, HIGH);
 
 	uint8_t reg = 0;
 	SPIIOBuf testBuf( 2 );
@@ -88,9 +88,9 @@ int main(int argc, char** argv)
 	std::cout << "=============================================" << std::endl;
 	std::cout << "Requesting CONFIG register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
-	testGPIO.sunxi_gpio_output(CSN, LOW);
+	testGPIO.output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CSN, HIGH);
 	testBuf.Print();
 	ConfigReg testConfReg(testBuf.GetRXData()[1]);
 	testConfReg.Print( std::cout );
@@ -100,18 +100,18 @@ int main(int argc, char** argv)
 	std::cout << "Writing CONFIG register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( W_REGISTER | (REGISTER_MASK & reg) );
 	s2bReg[1] = 0x03;
-	testGPIO.sunxi_gpio_output(CSN, LOW);
+	testGPIO.output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CSN, HIGH);
 	testBuf.Print();
 
 	//reg = CONFIG;
 	//std::cout << "=============================================" << std::endl;
 	//std::cout << "Requesting CONFIG register 6B " << (unsigned int)reg << std::endl;
 	//s6bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
-	//testGPIO.sunxi_gpio_output(CSN, LOW);
+	//testGPIO.output(CSN, LOW);
 	//testSPI.transfer( testBuf.SetTXData( s6bReg ) );
-	//testGPIO.sunxi_gpio_output(CSN, HIGH);
+	//testGPIO.output(CSN, HIGH);
 	//testBuf.Print();
 	//ConfigReg testConfReg2(testBuf.GetRXData()[1]);
 	//testConfReg2.Print( std::cout );
@@ -120,9 +120,9 @@ int main(int argc, char** argv)
 	std::cout << "=============================================" << std::endl;
 	std::cout << "Requesting CONFIG register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
-	testGPIO.sunxi_gpio_output(CSN, LOW);
+	testGPIO.output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CSN, HIGH);
 	testBuf.Print();
 	ConfigReg testConfReg3(testBuf.GetRXData()[1]);
 	testConfReg3.Print( std::cout );
@@ -131,9 +131,9 @@ int main(int argc, char** argv)
 	std::cout << "=============================================" << std::endl;
 	std::cout << "Requesting STATUS register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
-	testGPIO.sunxi_gpio_output(CSN, LOW);
+	testGPIO.output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CSN, HIGH);
 	testBuf.Print();
 	StatusReg testStatusReg(testBuf.GetRXData()[1]);
 	testStatusReg.Print( std::cout );
@@ -142,9 +142,9 @@ int main(int argc, char** argv)
 	std::cout << "=============================================" << std::endl;
 	std::cout << "Requesting SETUP_AW register " << (unsigned int)reg << std::endl;
 	s2bReg[0] = ( R_REGISTER | (REGISTER_MASK & reg) );
-	testGPIO.sunxi_gpio_output(CSN, LOW);
+	testGPIO.output(CSN, LOW);
 	testSPI.transfer( testBuf.SetTXData( s2bReg ) );
-	testGPIO.sunxi_gpio_output(CSN, HIGH);
+	testGPIO.output(CSN, HIGH);
 	testBuf.Print();
 
 	return 0;
