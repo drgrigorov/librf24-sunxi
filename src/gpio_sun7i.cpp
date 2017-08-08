@@ -19,22 +19,9 @@
  * MA 02110-1301, USA.
  */
 
-
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/select.h>
-#include <pthread.h>
 #include <unistd.h>
-#include <sched.h>
 
 #include "gpio_sun7i.h"
 

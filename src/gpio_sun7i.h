@@ -1,19 +1,6 @@
 #ifndef _GPIO_SUN7I_H_
 #define _GPIO_SUN7I_H_
 
-#include <string>
-#include <stdint.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <inttypes.h>
-#include <linux/types.h>
-
-using namespace std;
-
 #define SW_PORTC_IO_BASE 0x01c20800
 
 #define SUNXI_GPIO_A	0
@@ -37,27 +24,6 @@ using namespace std;
 #define INPUT   0
 #define OUTPUT  1
 #define PER     2
-
-struct sunxi_gpio {
-    unsigned int cfg[4];
-    unsigned int dat;
-    unsigned int drv[2];
-    unsigned int pull[2];
-};
-
-/* gpio interrupt control */
-struct sunxi_gpio_int {
-    unsigned int cfg[3];
-    unsigned int ctl;
-    unsigned int sta;
-    unsigned int deb;
-};
-
-struct sunxi_gpio_reg {
-    struct sunxi_gpio gpio_bank[9];
-    unsigned char res[0xbc];
-    struct sunxi_gpio_int gpio_int;
-};
 
 #define GPIO_BANK(pin)	((pin) >> 5)
 #define GPIO_NUM(pin)	((pin) & 0x1F)
@@ -161,6 +127,28 @@ enum sunxi_gpio_number {
 #define UEXT2_CSN SUNXI_GPI(16);
 
 class GPIO {
+	private:
+struct sunxi_gpio {
+    unsigned int cfg[4];
+    unsigned int dat;
+    unsigned int drv[2];
+    unsigned int pull[2];
+};
+
+/* gpio interrupt control */
+struct sunxi_gpio_int {
+    unsigned int cfg[3];
+    unsigned int ctl;
+    unsigned int sta;
+    unsigned int deb;
+};
+
+struct sunxi_gpio_reg {
+    struct sunxi_gpio gpio_bank[9];
+    unsigned char res[0xbc];
+    struct sunxi_gpio_int gpio_int;
+};
+
 public:
 
 	GPIO(void);
