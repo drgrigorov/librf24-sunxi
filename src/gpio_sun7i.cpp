@@ -59,47 +59,67 @@ GPIO::GPIO(void)
     close(fd);
 }
 
-int GPIO::set_cfgpin(unsigned int pin, unsigned int val) throw()
+struct GPIO::sunxi_gpio* GPIO::GetBank(unsigned int pin) const throw()
 {
-    unsigned int cfg;
     unsigned int bank = GPIO_BANK(pin);
-    unsigned int index = GPIO_CFG_INDEX(pin);
-    unsigned int offset = GPIO_CFG_OFFSET(pin);
 
+	struct sunxi_gpio_reg* base = (struct sunxi_gpio_reg *)SUNXI_PIO_BASE;
+
+	return &base->gpio_bank[bank];
+}
+
+unsigned char* GPIO::GetCfgAddr( unsigned int pin ) const throw()
+{
+    struct sunxi_gpio *pio = GetBank( pin );
+	//new structure has 16 bytes of cfg fields
+	//index should be pin%32 (to remove the banks) / 2
+	//(because each byte has 2 pins configured in it)
+	const unsigned char index = (pin%32)/2; //should always return 0-15
+	return &(pio->cfg[index]);
+}
+
+int GPIO::SetCfgpin(unsigned int pin, unsigned char val) throw()
+{
     if(SUNXI_PIO_BASE == 0) {
         return -1;
     }
 
-    struct sunxi_gpio *pio =
-        &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
+	unsigned char* cfgAddr = GetCfgAddr( pin );
 
-
-    cfg = *(&pio->cfg[0] + index);
-    cfg &= ~(0xf << offset);
-    cfg |= val << offset;
-
-    *(&pio->cfg[0] + index) = cfg;
-
+	if (pin%2)
+	{
+		//Clear the least sigificant semi octet
+		*cfgAddr &= 0xf0;
+		*cfgAddr |= (val >> 4) & 0x0f;
+	}
+	else
+	{
+		//Clear the most sigificant semi octet
+		*cfgAddr &= 0x0f;
+		*cfgAddr |= val & 0xf0;
+	}
     return 0;
 }
 
-int GPIO::get_cfgpin(unsigned int pin) throw()
+int GPIO::GetCfgpin(unsigned int pin) throw()
 {
-    unsigned int cfg;
-    unsigned int bank = GPIO_BANK(pin);
-    unsigned int index = GPIO_CFG_INDEX(pin);
-    unsigned int offset = GPIO_CFG_OFFSET(pin);
-    if(SUNXI_PIO_BASE == 0)
-    {
+    if(SUNXI_PIO_BASE == 0) {
         return -1;
     }
-    struct sunxi_gpio *pio = &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
-    cfg = *(&pio->cfg[0] + index);
-    cfg >>= offset;
-    return (cfg & 0xf);
+
+	unsigned char* cfgAddr = GetCfgAddr( pin );
+
+	if (pin%2)
+	{
+		return (*cfgAddr  >> 4) & 0x0f;
+	}
+	else
+	{
+		return *cfgAddr & 0x0f;
+	}
 }
 
-int GPIO::output(unsigned int pin, unsigned int val) throw()
+int GPIO::SetVal(unsigned int pin, unsigned int val) throw()
 {
     unsigned int bank = GPIO_BANK(pin);
     unsigned int num = GPIO_NUM(pin);
@@ -118,7 +138,7 @@ int GPIO::output(unsigned int pin, unsigned int val) throw()
     return 0;
 }
 
-int GPIO::input(unsigned int pin) throw()
+int GPIO::GetVal(unsigned int pin) throw()
 {
     unsigned int dat;
     unsigned int bank = GPIO_BANK(pin);
@@ -137,7 +157,7 @@ int GPIO::input(unsigned int pin) throw()
     return (dat & 0x1);
 }
 
-void GPIO::cleanup(void) throw()
+void GPIO::Cleanup(void) throw()
 {
     unsigned int PageSize;
     if (gpio_map == NULL)
@@ -149,5 +169,5 @@ void GPIO::cleanup(void) throw()
 
 GPIO::~GPIO()
 {
-	cleanup();
+	Cleanup();
 }

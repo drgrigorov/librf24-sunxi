@@ -86,14 +86,14 @@ std::ostream& StatusReg::Print( std::ostream& Out ) const throw()
 
 void RF24::csn(int mode)
 {
-  gpio->output(csn_pin, mode);
+  gpio->SetVal(csn_pin, mode);
 }
 
 /****************************************************************************/
 
 void RF24::ce(int mode)
 {
-  gpio->output(ce_pin, mode);
+  gpio->SetVal(ce_pin, mode);
 }
 
 /****************************************************************************/
@@ -500,21 +500,21 @@ void RF24::begin(void)
   __start_timer();
   // Initialize pins
   int ret = 0;
-  ret = gpio->set_cfgpin(ce_pin, OUTPUT);
+  ret = gpio->SetCfgpin(ce_pin, OUTPUT);
   if (ret != 0)
   {
      printf("an error occured during CE_PIN config! Aborting! \r\n");
 	 return;
   }
 
-  ret = gpio->set_cfgpin(csn_pin, OUTPUT);
+  ret = gpio->SetCfgpin(csn_pin, OUTPUT);
   if (ret != 0)
   {
      printf("an error occured during CSN_PIN config! Aborting! \r\n");
      return;
   }
 
-  ret = gpio->output(csn_pin, HIGH);
+  ret = gpio->SetVal(csn_pin, HIGH);
 
   ce(LOW);
   csn(HIGH);

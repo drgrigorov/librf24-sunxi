@@ -120,16 +120,18 @@ enum sunxi_gpio_number {
 #define SUNXI_GPF4_SDC0_D3	(2)
 #define SUNXI_GPF4_UART0_RX	(4)
 
-#define UEXT1_CE SUNXI_GPB(20);
-#define UEXT1_CSN SUNXI_GPB(14);
+#define UEXT1_CE SUNXI_GPB(20)
+#define UEXT1_CSN SUNXI_GPB(14)
 
-#define UEXT2_CE SUNXI_GPB(18);
-#define UEXT2_CSN SUNXI_GPI(16);
+#define UEXT2_CE SUNXI_GPB(18)
+#define UEXT2_CSN SUNXI_GPI(16)
 
 class GPIO {
-	private:
+
+//private:
+public:
 struct sunxi_gpio {
-    unsigned int cfg[4];
+    unsigned char cfg[16];
     unsigned int dat;
     unsigned int drv[2];
     unsigned int pull[2];
@@ -149,23 +151,27 @@ struct sunxi_gpio_reg {
     struct sunxi_gpio_int gpio_int;
 };
 
+struct sunxi_gpio* GetBank(unsigned int pin) const throw();
+unsigned char* GetCfgAddr( unsigned int pin ) const throw();
+
 public:
 
 	GPIO(void);
-	int input(unsigned int pin) throw();
-	int set_cfgpin(unsigned int pin, unsigned int val) throw();
-	int get_cfgpin(unsigned int pin) throw();
-	int output(unsigned int pin, unsigned int val) throw();
+	int SetCfgpin(unsigned int pin, unsigned char val) throw();
+	int GetCfgpin(unsigned int pin) throw();
+	int GetVal(unsigned int pin) throw();
+	int SetVal(unsigned int pin, unsigned int val) throw();
 
 	~GPIO();
 
 	int GetErr() const throw() { return m_nErr; }
+
 private:
 	unsigned int SUNXI_PIO_BASE;
 	long int *gpio_map;
 	int m_nErr;
 
-	void cleanup(void) throw();
+	void Cleanup(void) throw();
 };
 
 #endif
