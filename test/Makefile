@@ -25,4 +25,4 @@ gpio: gpio.cpp
 gpiodump: gpiodump.cpp
 	g++ -std=c++11 gpiodump.cpp -DGPIO_SUN7I -I../src/ -I${RLCPPINC} -L${LIBDIR} -l${LIBNAME} -L${RLCPPLIB} -lcpprl -lreadline ${CCFLAGS} -o gpiodump
 clean:
-	rm -f scanner pingtest bipingtest registers gpio
+	rm -f scanner pingtest bipingtest registers gpio gpiodump
