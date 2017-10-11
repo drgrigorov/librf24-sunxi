@@ -33,9 +33,8 @@ GPIO::GPIO(void)
     int fd;
     unsigned int addr_start, addr_offset;
     unsigned int PageSize, PageMask;
-
-
     fd = open("/dev/mem", O_RDWR);
+
     if(fd < 0) {
         m_nErr = -1;
 	return;
@@ -80,38 +79,61 @@ unsigned char* GPIO::GetCfgAddr( unsigned int pin ) const throw()
 
 int GPIO::SetCfgpin(unsigned int pin, unsigned char val) throw()
 {
-    if(SUNXI_PIO_BASE == 0) {
+    if(SUNXI_PIO_BASE == 0)
+	{
         return -1;
     }
 
+	//Check if pin is out of range. Max pin is 9 banks by 32 pins.
+	if ( pin < 0 || pin >= 9*32 )
+	{
+		return -2;
+	}
+
 	unsigned char* cfgAddr = GetCfgAddr( pin );
+	unsigned char nBeforeChange = *cfgAddr;
 
 	if (pin%2)
 	{
-		//Clear the least sigificant semi octet
-		*cfgAddr &= 0xf0;
-		*cfgAddr |= (val >> 4) & 0x0f;
+		//Clear the most sigificant semi octet
+		*cfgAddr &= 0x0f;
+		*cfgAddr |= (val << 4) & 0xf0;
 	}
 	else
 	{
-		//Clear the most sigificant semi octet
-		*cfgAddr &= 0x0f;
-		*cfgAddr |= val & 0xf0;
+		//Clear the least sigificant semi octet
+		*cfgAddr &= 0xf0;
+		*cfgAddr |= val & 0x0f;
 	}
-    return 0;
+
+	if (nBeforeChange == *cfgAddr)
+	{
+		//Change was not done
+		return 0;
+	}
+
+	//Change was done
+    return 1;
 }
 
 int GPIO::GetCfgpin(unsigned int pin) throw()
 {
-    if(SUNXI_PIO_BASE == 0) {
+    if(SUNXI_PIO_BASE == 0)
+	{
         return -1;
     }
+
+	//Check if pin is out of range. Max pin is 9 banks of 32 pins.
+	if ( pin < 0 || pin >= 9*32 )
+	{
+		return -2;
+	}
 
 	unsigned char* cfgAddr = GetCfgAddr( pin );
 
 	if (pin%2)
 	{
-		return (*cfgAddr  >> 4) & 0x0f;
+		return (*cfgAddr >> 4) & 0x0f;
 	}
 	else
 	{
