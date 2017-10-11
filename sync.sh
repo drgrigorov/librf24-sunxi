@@ -1,2 +1,2 @@
 #!/bin/bash
-rsync -racv src/ shtaigalan:librf24-sunxi/src && rsync -racv test/ shtaigalan:librf24-sunxi/test
+rsync -racv --exclude-from=.gitignore src/ micro:librf24-sunxi/src && rsync -racv --exclude-from=.gitignore test/ micro:librf24-sunxi/test
