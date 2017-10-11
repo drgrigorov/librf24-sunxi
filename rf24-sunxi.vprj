@@ -17,6 +17,7 @@ src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h Mak
   registers.cpp
   pingtest.cpp
   scanner.cpp
+  gpio.cpp
   Makefile
  }
  uextdevs.txt
