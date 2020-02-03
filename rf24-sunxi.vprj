@@ -1,4 +1,8 @@
 src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h Makefile" flags=S {
+<<<<<<< HEAD
+ Makefile
+=======
+>>>>>>> 8d0c1d9476f53b1a726c2f565cd875a57adc12a0
  src=src CD=. flags=S {
   RF24.cpp
   RF24.h
@@ -16,6 +20,11 @@ src="/home/quick/hobby/olimex/projects/librf24-sunxi" CD=. filter="*.cpp *.h Mak
   registers.cpp
   pingtest.cpp
   scanner.cpp
+<<<<<<< HEAD
+  gpio.cpp
+=======
+>>>>>>> 8d0c1d9476f53b1a726c2f565cd875a57adc12a0
   Makefile
  }
+ uextdevs.txt
 }

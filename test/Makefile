@@ -20,9 +20,10 @@ scanner: scanner.cpp
 	g++ scanner.cpp -DGPIO_SUN7I -I../src/ -L${LIBDIR} -l${LIBNAME} ${CCFLAGS} -o scanner
 
 gpio: gpio.cpp
-	g++ gpio.cpp -DGPIO_SUN7I -I../src/ -I${RLCPPINC} -L${LIBDIR} -l${LIBNAME} -L${RLCPPLIB} -lcpprl -lreadline ${CCFLAGS} -o gpio
+	g++ -std=c++11 gpio.cpp -DGPIO_SUN7I -I../src/ -I${RLCPPINC} -L${LIBDIR} -l${LIBNAME} -L${RLCPPLIB} -lcpprl -lreadline ${CCFLAGS} -o gpio
 
 gpiodump: gpiodump.cpp
-	g++ gpiodump.cpp -DGPIO_SUN7I -I../src/ -L${LIBDIR} -l${LIBNAME} ${CCFLAGS} -o gpiodump
+	g++ -std=c++11 gpiodump.cpp -DGPIO_SUN7I -I../src/ -I${RLCPPINC} -L${LIBDIR} -l${LIBNAME} -L${RLCPPLIB} -lcpprl -lreadline ${CCFLAGS} -o gpiodump
+
 clean:
 	rm -f scanner pingtest bipingtest registers gpio gpiodump

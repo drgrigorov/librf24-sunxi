@@ -58,7 +58,6 @@ const char* gpioNameList[] =
 //UEXT2_9  - SPI1-CLK - PI17
 //UEXT2_10 - SPI1-CS0 - PI16
 
-
 class PinID
 {
 public:
