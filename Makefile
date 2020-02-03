@@ -6,7 +6,8 @@ OBJDIR=obj/
 LIBDIR=lib/
 TESTDIR=test/
 
-CCFLAGS=-Ofast -mfpu=vfp -mfloat-abi=hard
+#CCFLAGS=-Ofast -mfpu=vfp -mfloat-abi=hard
+CCFLAGS=-O0 -ggdb -mfpu=vfp -mfloat-abi=hard -std=c++11
 
 all:librf24-sun7i test
 

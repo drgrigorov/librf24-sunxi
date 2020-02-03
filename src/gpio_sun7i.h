@@ -1,18 +1,7 @@
 #ifndef _GPIO_SUN7I_H_
 #define _GPIO_SUN7I_H_
 
-#include <string>
-#include <stdint.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <inttypes.h>
-#include <linux/types.h>
-
-using namespace std;
+#include <cstdint>
 
 #define SW_PORTC_IO_BASE 0x01c20800
 
@@ -37,27 +26,6 @@ using namespace std;
 #define INPUT   0
 #define OUTPUT  1
 #define PER     2
-
-struct sunxi_gpio {
-    unsigned int cfg[4];
-    unsigned int dat;
-    unsigned int drv[2];
-    unsigned int pull[2];
-};
-
-/* gpio interrupt control */
-struct sunxi_gpio_int {
-    unsigned int cfg[3];
-    unsigned int ctl;
-    unsigned int sta;
-    unsigned int deb;
-};
-
-struct sunxi_gpio_reg {
-    struct sunxi_gpio gpio_bank[9];
-    unsigned char res[0xbc];
-    struct sunxi_gpio_int gpio_int;
-};
 
 #define GPIO_BANK(pin)	((pin) >> 5)
 #define GPIO_NUM(pin)	((pin) & 0x1F)
@@ -154,24 +122,61 @@ enum sunxi_gpio_number {
 #define SUNXI_GPF4_SDC0_D3	(2)
 #define SUNXI_GPF4_UART0_RX	(4)
 
-#define UEXT1_CE SUNXI_GPB(20);
-#define UEXT1_CSN SUNXI_GPB(14);
+#define UEXT1_CE SUNXI_GPB(20)
+#define UEXT1_CSN SUNXI_GPB(14)
 
-#define UEXT2_CE SUNXI_GPB(18);
-#define UEXT2_CSN SUNXI_GPI(16);
+#define UEXT2_CE SUNXI_GPB(18)
+#define UEXT2_CSN SUNXI_GPI(16)
 
 class GPIO {
+
+//private:
 public:
+struct sunxi_gpio {
+    uint8_t cfg[16];
+    uint32_t dat;
+    uint32_t drv[2];
+    uint32_t pull[2];
+};
+
+/* gpio interrupt control */
+struct sunxi_gpio_int {
+    uint32_t cfg[3];
+    uint32_t ctl;
+    uint32_t sta;
+    uint32_t deb;
+};
+
+struct sunxi_gpio_reg {
+    struct sunxi_gpio gpio_bank[9];
+	//this is 0x200 - (9*0x24)
+    uint8_t res[0xbc];
+    struct sunxi_gpio_int gpio_int;
+};
+
+struct sunxi_gpio* GetBank(uint16_t pin) const throw();
+uint8_t* GetCfgAddr( uint16_t pin ) const throw();
+
+public:
+
 	GPIO(void);
-        int err;
-	int sunxi_gpio_input(unsigned int pin);
-	int sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val);
-	int sunxi_gpio_get_cfgpin(unsigned int pin);
-	int sunxi_gpio_output(unsigned int pin, unsigned int val);
-	void sunxi_gpio_cleanup(void);
+	int8_t SetCfgpin(uint16_t pin, uint8_t val) throw();
+	int8_t GetCfgpin(uint16_t pin) throw();
+	int8_t GetVal(uint16_t pin) throw();
+	int8_t SetVal(uint16_t pin, uint8_t val) throw();
+	int8_t GetPullUp(uint16_t pin) throw();
+	int8_t GetLevel(uint16_t pin) throw();
+
+	~GPIO();
+
+	int GetErr() const throw() { return m_nErr; }
+
 private:
-	unsigned int SUNXI_PIO_BASE;
-	long int *gpio_map;
+	intptr_t SUNXI_PIO_BASE;
+	long int *gpio_map;//Not sure what type to put here
+	int8_t m_nErr;
+
+	void Cleanup(void) throw();
 };
 
 #endif

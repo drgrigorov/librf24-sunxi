@@ -19,37 +19,25 @@
  * MA 02110-1301, USA.
  */
 
-
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/select.h>
-#include <pthread.h>
 #include <unistd.h>
-#include <sched.h>
+#include <assert.h>
 
 #include "gpio_sun7i.h"
 
 GPIO::GPIO(void)
+:
+    gpio_map( NULL ),
+    m_nErr( 0 )
 {
-    gpio_map = NULL;
-    err = 0;
-    int fd;
-    unsigned int addr_start, addr_offset;
-    unsigned int PageSize, PageMask;
-
-
+    int32_t fd;
+    intptr_t addr_start, addr_offset;
+    uint32_t PageSize, PageMask;
     fd = open("/dev/mem", O_RDWR);
+
     if(fd < 0) {
-        err = -1;
+        m_nErr = -1;
 	return;
     }
 
@@ -61,57 +49,100 @@ GPIO::GPIO(void)
 
     gpio_map = (long int*)(void *)mmap(0, PageSize*2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, addr_start);
     if(gpio_map == MAP_FAILED) {
-        err = -2;
+        m_nErr = -2;
 	return;
     }
 
-    SUNXI_PIO_BASE = (unsigned int)gpio_map;
+    SUNXI_PIO_BASE = (intptr_t)gpio_map;
     SUNXI_PIO_BASE += addr_offset;
 
     close(fd);
 }
 
-int GPIO::sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val)
+struct GPIO::sunxi_gpio* GPIO::GetBank(uint16_t pin) const throw()
 {
-    unsigned int cfg;
-    unsigned int bank = GPIO_BANK(pin);
-    unsigned int index = GPIO_CFG_INDEX(pin);
-    unsigned int offset = GPIO_CFG_OFFSET(pin);
+    intptr_t bank = GPIO_BANK(pin);
 
-    if(SUNXI_PIO_BASE == 0) {
-        return -1;
-    }
+	struct sunxi_gpio_reg* base = (struct sunxi_gpio_reg *)SUNXI_PIO_BASE;
 
-    struct sunxi_gpio *pio =
-        &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
-
-
-    cfg = *(&pio->cfg[0] + index);
-    cfg &= ~(0xf << offset);
-    cfg |= val << offset;
-
-    *(&pio->cfg[0] + index) = cfg;
-
-    return 0;
+	return &base->gpio_bank[bank];
 }
 
-int GPIO::sunxi_gpio_get_cfgpin(unsigned int pin)
+uint8_t* GPIO::GetCfgAddr( uint16_t pin ) const throw()
 {
-    unsigned int cfg;
-    unsigned int bank = GPIO_BANK(pin);
-    unsigned int index = GPIO_CFG_INDEX(pin);
-    unsigned int offset = GPIO_CFG_OFFSET(pin);
+    struct sunxi_gpio *pio = GetBank( pin );
+	//new structure has 16 bytes of cfg fields
+	//index should be pin%32 (to remove the banks) / 2
+	//(because each byte has 2 pins configured in it)
+	const unsigned char index = (pin%32)/2; //should always return 0-15
+	return &(pio->cfg[index]);
+}
+
+int8_t GPIO::SetCfgpin(uint16_t pin, uint8_t val) throw()
+{
     if(SUNXI_PIO_BASE == 0)
-    {
+	{
         return -1;
     }
-    struct sunxi_gpio *pio = &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
-    cfg = *(&pio->cfg[0] + index);
-    cfg >>= offset;
-    return (cfg & 0xf);
+
+	//Check if pin is out of range. Max pin is 9 banks by 32 pins.
+	if ( pin < 0 || pin >= 9*32 )
+	{
+		return -2;
+	}
+
+	uint8_t* cfgAddr = GetCfgAddr( pin );
+	uint8_t nBeforeChange = *cfgAddr;
+
+	if (pin%2)
+	{
+		//Clear the most sigificant semi octet
+		*cfgAddr &= 0x0f;
+		*cfgAddr |= (val << 4) & 0xf0;
+	}
+	else
+	{
+		//Clear the least sigificant semi octet
+		*cfgAddr &= 0xf0;
+		*cfgAddr |= val & 0x0f;
+	}
+
+	if (nBeforeChange == *cfgAddr)
+	{
+		//Change was not done
+		return 0;
+	}
+
+	//Change was done
+    return 1;
 }
 
-int GPIO::sunxi_gpio_output(unsigned int pin, unsigned int val)
+int8_t GPIO::GetCfgpin(uint16_t pin) throw()
+{
+    if(SUNXI_PIO_BASE == 0)
+	{
+        return -1;
+    }
+
+	//Check if pin is out of range. Max pin is 9 banks of 32 pins.
+	if ( pin < 0 || pin >= 9*32 )
+	{
+		return -2;
+	}
+
+	uint8_t* cfgAddr = GetCfgAddr( pin );
+
+	if (pin%2)
+	{
+		return (*cfgAddr >> 4) & 0x0f;
+	}
+	else
+	{
+		return *cfgAddr & 0x0f;
+	}
+}
+
+int8_t GPIO::SetVal(uint16_t pin, uint8_t val) throw()
 {
     unsigned int bank = GPIO_BANK(pin);
     unsigned int num = GPIO_NUM(pin);
@@ -130,7 +161,7 @@ int GPIO::sunxi_gpio_output(unsigned int pin, unsigned int val)
     return 0;
 }
 
-int GPIO::sunxi_gpio_input(unsigned int pin)
+int8_t GPIO::GetVal(uint16_t pin) throw()
 {
     unsigned int dat;
     unsigned int bank = GPIO_BANK(pin);
@@ -149,7 +180,37 @@ int GPIO::sunxi_gpio_input(unsigned int pin)
     return (dat & 0x1);
 }
 
-void GPIO::sunxi_gpio_cleanup(void)
+int8_t GPIO::GetPullUp(uint16_t pin) throw()
+{
+	struct sunxi_gpio *pio = GetBank( pin );
+	uint8_t index = (pin % 32)/16;
+
+	//should be impossible
+	assert( index < 2 );
+
+	uint32_t pull = pio->pull[ index ];
+	
+	//0 -> 14
+	//1 -> 12
+	//2 -> 10 ...
+	//30 - 2*(( x % 32 ) % 16) =
+	return ( 0x03 & (pull >> ( 30 - 2*(( pin % 32 )%16 ))));
+}
+
+int8_t GPIO::GetLevel(uint16_t pin) throw()
+{
+	struct sunxi_gpio *pio = GetBank( pin );
+	uint8_t index = (pin % 32)/16;
+
+	//should be impossible
+	assert( index < 2 );
+
+	uint32_t drv = pio->drv[ index ];
+	
+	return ( 0x03 & (drv >> ( 30 - 2*(( pin % 32 )%16 ))));
+}
+
+void GPIO::Cleanup(void) throw()
 {
     unsigned int PageSize;
     if (gpio_map == NULL)
@@ -157,4 +218,9 @@ void GPIO::sunxi_gpio_cleanup(void)
 
     PageSize = sysconf(_SC_PAGESIZE);
     munmap((void*)gpio_map, PageSize*2);
+}
+
+GPIO::~GPIO()
+{
+	Cleanup();
 }
